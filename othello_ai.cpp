@@ -8,7 +8,7 @@
 // 可能出现的估价函数最大值
 #define MAXVALUE 100000
 // 遍历深度
-#define DEPTH 2
+#define DEPTH 3
 //棋子颜色
 #define WHITE 1
 #define BLACK 2
@@ -40,7 +40,7 @@ void othello_ai::init(int color, std::string s){
 // 初始化估计值
 void othello_ai::init_valuemap() {
 	int i, j;
-	int value_peak = 500, value01 = -150, value02 = -250, value_edge = 20;
+	int value_peak = 500, value01 = -350, value02 = -350, value_edge = 10, value_diag = -5;
 	for (i = 0; i < MAXEDGE; i ++) {
 		for (j = 0; j < MAXEDGE; j ++) {
 			valuemap[i][j] = ( i * (MAXEDGE - 1 - i) + j * (MAXEDGE - 1 - j) - 60 ) / 16;
@@ -54,6 +54,11 @@ void othello_ai::init_valuemap() {
 				valuemap[i][j] = 0;
 				continue;
 			}
+			// 对角线
+			//if ( (i == j) || (i + j == MAXEDGE - 1) ) {
+			//	valuemap[i][j] = value_diag;
+			//	continue;
+			//}
 		}
 	}
 
@@ -114,7 +119,7 @@ std::pair<int, int> othello_ai::get(){
 int othello_ai::turn(othello16 o_upper, int player, int backpoint, int depth) {
 	// 检查超时
 	int runtime = get_time();
-	if (runtime > 1000) {
+	if (runtime > 1800) {
 		std::cerr<<"time "<<runtime<<" overflow"<<std::endl;
 		return (player == o.mycolor) ? MAXVALUE : -MAXVALUE;
 	}
@@ -179,6 +184,10 @@ int othello_ai::turn(othello16 o_upper, int player, int backpoint, int depth) {
 			o_t.play(player, (*it).first, (*it).second);
 			// string2map(o_t.tostring());
 			value_t = turn(o_t, 3 - player, value_mark, depth);
+			if (value_t == MAXVALUE || value_t == -MAXVALUE) {
+				// 子问题超时
+				return value_t;
+			}
 			std::cerr<<std::endl<<"depth "<<DEPTH - depth<<":";
 			for (int k = 0; k < DEPTH - depth; k ++) 
 				std::cerr<<"    ";
@@ -207,24 +216,32 @@ int othello_ai::turn(othello16 o_upper, int player, int backpoint, int depth) {
 }
 
 int othello_ai::evaluation(othello16 o_t, int player) {
-	// int total_black = o_t.count(BLACK);
-	// int total_white = o_t.count(WHITE);
+	//int total_black = o_t.count(BLACK);
+	//int total_white = o_t.count(WHITE);
+	//
+	//if (total_black + total_white <= 64 ) {
 
-	std::string map = o_t.tostring();
-	int value = 0, i, j, num = 0, temp, liberty_value = 0;
-	for (i = 0; i < MAXEDGE; i ++) {
-		for (j = 0; j < MAXEDGE; j ++) {
-			num = i * MAXEDGE + j;
-			if (map[num] == BLANK + '0') {
-				continue; 
+		// 前期
+		std::string map = o_t.tostring();
+		int value = 0, i, j, num = 0, temp, liberty_value = 0;
+		for (i = 0; i < MAXEDGE; i ++) {
+			for (j = 0; j < MAXEDGE; j ++) {
+				num = i * MAXEDGE + j;
+				if (map[num] == BLANK + '0') {
+					continue; 
+				}
+				value += ( ( o_t.mycolor == map[num] - '0' ) ? 1 : -1 ) * valuemap[i][j];
 			}
-			value += ( ( o_t.mycolor == map[num] - '0' ) ? 1 : -1 ) * valuemap[i][j];
 		}
-	}
-	// liberty_value += 8 * o_t.canmove(player) * ((player == o_t.mycolor) ? 1 : -1);
-	// std::cerr<<" evaluation "<<value<<" ";
-	//string2map(map);
-	return value + liberty_value;
+		// liberty_value += 8 * o_t.canmove(player) * ((player == o_t.mycolor) ? 1 : -1);
+		// std::cerr<<" evaluation "<<value<<" ";
+		//string2map(map);
+		return value + liberty_value;
+	//} else {
+
+	//	// 中期
+
+	//}
 }
 
 void othello_ai::string2map(std::string str) {
@@ -240,8 +257,11 @@ void othello_ai::string2map(std::string str) {
 std::pair<int, int> othello_ai::seize_peak(std::vector< std::pair<int, int> > v) {
 	std::vector< std::pair<int, int> >::iterator it;
 	for (it = v.begin() ; it != v.end(); ++ it) {
-		if ( (*it).first * ( MAXEDGE - 1 - (*it).first ) == 0
-			|| (*it).second * ( MAXEDGE - 1 - (*it).second ) == 0) {
+		if ( ( (*it).first == 0 && (*it).second == 0 )
+			|| ( (*it).first == 0 && (*it).second == MAXEDGE - 1 )
+			|| ( (*it).first == MAXEDGE - 1 && (*it).second == 0 )
+			|| ( (*it).first == MAXEDGE - 1 && (*it).second == MAXEDGE - 1 ) ) {
+				std::cerr<<std::endl<<"seize peak ("<<(*it).first<<", "<<(*it).second<<")"<<std::endl;
 				return std::pair<int, int> ((*it).first, (*it).second);
 		}
 	}
