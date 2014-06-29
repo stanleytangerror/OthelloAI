@@ -22,6 +22,7 @@ public:
 	std::pair<int, int> next;
 	void init(int color, std::string s);
 	void init_valuemap();
+	void adjust_valuemap();
 	void move(int color, int x, int y);
 	std::pair<int, int> get();
 	int turn(othello16 o_upper, int player, int backpoint, int depth);
@@ -82,6 +83,29 @@ void othello_ai::init_valuemap() {
 	valuemap[MAXEDGE - 2][MAXEDGE - 2] = value02;
 }
 
+void othello_ai::adjust_valuemap() {
+	if ( o.is(o.mycolor, 0, 0) ) {
+		valuemap[0][1] *= (valuemap[0][1] < 0) ? -1 : 1;
+		valuemap[1][0] *= (valuemap[1][0] < 0) ? -1 : 1;
+		valuemap[1][1] *= (valuemap[1][1] < 0) ? -1 : 1;
+	}
+	if ( o.is(o.mycolor, 0, MAXEDGE - 1) ) {
+		valuemap[0][MAXEDGE - 2] *= (valuemap[0][MAXEDGE - 2] < 0) ? -1 : 1;
+		valuemap[1][MAXEDGE - 1] *= (valuemap[1][MAXEDGE - 1] < 0) ? -1 : 1;
+		valuemap[1][MAXEDGE - 2] *= (valuemap[1][MAXEDGE - 2] < 0) ? -1 : 1;
+	}
+	if ( o.is(o.mycolor, MAXEDGE - 1, 0) ) {
+		valuemap[MAXEDGE - 2][1] *= (valuemap[MAXEDGE - 2][1] < 0) ? -1 : 1;
+		valuemap[MAXEDGE - 1][0] *= (valuemap[MAXEDGE - 1][0] < 0) ? -1 : 1;
+		valuemap[MAXEDGE - 2][1] *= (valuemap[MAXEDGE - 2][1] < 0) ? -1 : 1;
+	}
+	if ( o.is(o.mycolor, MAXEDGE - 1, MAXEDGE - 1) ) {
+		valuemap[MAXEDGE - 1][MAXEDGE - 2] *= (valuemap[MAXEDGE - 1][MAXEDGE - 2] < 0) ? -1 : 1;
+		valuemap[MAXEDGE - 2][MAXEDGE - 1] *= (valuemap[MAXEDGE - 2][MAXEDGE - 1] < 0) ? -1 : 1;
+		valuemap[MAXEDGE - 2][MAXEDGE - 2] *= (valuemap[MAXEDGE - 2][MAXEDGE - 2] < 0) ? -1 : 1;
+	}
+}
+
 //告知所有下子情况(包括你自己的落子情况)
 void othello_ai::move(int color, int x, int y){
 	o.play(color, x, y);
@@ -89,6 +113,7 @@ void othello_ai::move(int color, int x, int y){
 
 //返回一个你的落子决定
 std::pair<int, int> othello_ai::get(){
+	adjust_valuemap();
 	//获得所有可落子的位置,按先行后列的顺序
 	std::vector< std::pair<int, int> > ans = o.allmove(o.mycolor);
 
@@ -128,7 +153,7 @@ int othello_ai::turn(othello16 o_upper, int player, int backpoint, int depth) {
 	// std::cerr<<"player "<<player<<" my color "<<o.mycolor<<std::endl;
 	othello16 o_t;
 	int value_t, value_mark;
-	std::pair<int, int> step_mark;
+	std::pair<int, int> step_mark (-1, -1);
 	// 初始化value_mark
 	if (player == o.mycolor) {
 		value_mark = -MAXVALUE;
@@ -186,7 +211,7 @@ int othello_ai::turn(othello16 o_upper, int player, int backpoint, int depth) {
 			value_t = turn(o_t, 3 - player, value_mark, depth);
 			if (value_t == MAXVALUE || value_t == -MAXVALUE) {
 				// 子问题超时
-				return value_t;
+				break;
 			}
 			std::cerr<<std::endl<<"depth "<<DEPTH - depth<<":";
 			for (int k = 0; k < DEPTH - depth; k ++) 
