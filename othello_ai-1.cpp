@@ -251,14 +251,20 @@ int othello_ai::evaluation(othello16 o_t, int player) {
 	std::string map = o_t.tostring();
 	int value = 0, i, j, num = 0, liberty_value = 0;
 	
-	if (total_black + total_white <= 64 ) {
+	if (total_black + total_white <= 48 ) {
 
 		// 前期
-		liberty_value += 4 * o_t.canmove(player) * ((player == o_t.mycolor) ? 1 : -1);
-		// std::cerr<<" evaluation "<<value<<" ";
-		//string2map(map);
-		return value + liberty_value;
-	} else {
+		for (i = 0; i < MAXEDGE; i ++) {
+			for (j = 0; j < MAXEDGE; j ++) {
+				num = i * MAXEDGE + j;
+				if (map[num] == BLANK + '0') {
+					continue; 
+				}
+				value += ( ( o_t.mycolor == map[num] - '0' ) ? 1 : -1 ) * valuemap[i][j];
+			}
+		}
+		return value;
+	} else if (total_black + total_white <= 192 ) {
 
 		// 中期
 		for (i = 0; i < MAXEDGE; i ++) {
@@ -272,8 +278,10 @@ int othello_ai::evaluation(othello16 o_t, int player) {
 		}
 		liberty_value += 4 * o_t.canmove(player) * ((player == o_t.mycolor) ? 1 : -1);
 		return value + liberty_value;
+
 	}
 }
+
 
 void othello_ai::string2map(std::string str) {
 	std::cerr<<std::endl;
